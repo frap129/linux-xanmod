@@ -15,7 +15,7 @@
 ## Default is: 0 => generic
 ## Good option if your package is for one machine: 38 => native
 if [ -z ${_microarchitecture+x} ]; then
-  _microarchitecture=0
+  _microarchitecture=38
 fi
 
 ## Disable NUMA since most users do not have multiple processors. Breaks CUDA/NvEnc.
@@ -23,7 +23,7 @@ fi
 ## Set variable "use_numa" to: n to disable (possibly increase performance)
 ##                             y to enable  (stock default)
 if [ -z ${use_numa+x} ]; then
-  use_numa=y
+  use_numa=n
 fi
 
 ## For performance you can disable FUNCTION_TRACER/GRAPH_TRACER. Limits debugging and analyzing of the kernel.
@@ -31,7 +31,7 @@ fi
 ## Set variable "use_tracers" to: n to disable (possibly increase performance)
 ##                                y to enable  (stock default)
 if [ -z ${use_tracers+x} ]; then
-  use_tracers=y
+  use_tracers=n
 fi
 
 ## Enable PDS CPU scheduler by default https://gitlab.com/alfredchen/linux-pds
@@ -45,7 +45,7 @@ fi
 ## Set variable "use_ns" to: n to disable (stock Xanmod)
 ##                           y to enable (stock Archlinux)
 if [ -z ${use_ns+x} ]; then
-  use_ns=n
+  use_ns=y
 fi
 
 # Compile ONLY used modules to VASTLYreduce the number of modules built
@@ -111,7 +111,8 @@ prepare() {
 
   # Enable IKCONFIG following Arch's philosophy
   scripts/config --enable CONFIG_IKCONFIG \
-                 --enable CONFIG_IKCONFIG_PROC
+                 --enable CONFIG_IKCONFIG_PROC \
+                 --enable CONFIG_USER_NS
 
   # User set. See at the top of this file
   if [ "$use_tracers" = "n" ]; then
@@ -165,7 +166,7 @@ prepare() {
 
 build() {
   cd $_srcname
-  make bzImage modules
+  make bzImage modules -j8
 }
 
 _package() {
