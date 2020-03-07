@@ -175,7 +175,7 @@ prepare() {
 
 build() {
   cd $_srcname
-  make all -j8
+  make CC="ccache clang" HOSTCC="ccache clang" -j8 all
 }
 
 _package() {
