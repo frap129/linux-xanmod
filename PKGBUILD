@@ -11,9 +11,9 @@
 ##   Example: env _microarchitecture=25 use_numa=n use_tracers=n use_pds=n makepkg -sc
 ##
 ## Look inside 'choose-gcc-optimization.sh' to choose your microarchitecture
-## Valid numbers between: 0 to 38
+## Valid numbers between: 0 to 42
 ## Default is: 0 => generic
-## Good option if your package is for one machine: 38 => native
+## Good option if your package is for one machine: 42 => native
 if [ -z ${_microarchitecture+x} ]; then
   _microarchitecture=38
 fi
@@ -63,8 +63,8 @@ fi
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
 pkgbase=linux-xanmod
-pkgver=5.5.6
-xanmod=5
+pkgver=5.5.8
+xanmod=6
 pkgrel=1
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -89,8 +89,8 @@ for _patch in $_commits; do
 done
     
 
-sha256sums=('21ecd7632c5ef4046405efc575b7c965453b2a59bd2673cb4d660fc15c4b7d9e'
-            '8b2629f6340d4807c113cd9fa308f50f0a8d85df5698bef083e151f06d58f748'
+sha256sums=('5e43f89ea85beaed40c91a74cdc29b4122ecb1aac84bed640f26286557d402ab'
+            '2c7369218e81dee86f8ac15bda741b9bb34fa9cefcb087760242277a8207d511'
             '9c507bdb0062b5b54c6969f7da9ec18b259e06cd26dbe900cfe79a7ffb2713ee')
 
 export KBUILD_BUILD_HOST=archlinux
