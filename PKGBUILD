@@ -155,7 +155,7 @@ prepare() {
     cp -f "${startdir}"/myconfig .config
   fi
 
-  make HOSTCC="ccache clang" olddefconfig
+  make olddefconfig
 
   ### Optionally load needed modules for the make localmodconfig
   # See https://aur.archlinux.org/packages/modprobed-db
