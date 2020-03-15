@@ -175,7 +175,7 @@ prepare() {
 
 build() {
   cd $_srcname
-  make CC="ccache clang" HOSTCC="ccache clang" -j`nproc` all
+  make CC="ccache gcc" HOSTCC="ccache gcc" -j`nproc` all
 }
 
 _package() {
