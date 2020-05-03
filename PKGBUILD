@@ -66,7 +66,7 @@ _makenconfig=
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
 pkgbase=linux-xanmod
-pkgver=5.6.2
+pkgver=5.6.10
 _major=5.6
 _branch=5.x
 xanmod=1
@@ -101,7 +101,7 @@ done
 
 sha256sums=('e342b04a2aa63808ea0ef1baab28fc520bd031ef8cf93d9ee4a31d4058fcb622'
             'SKIP'
-            '8a4c12b81ecf5949f0d44ccc78dbec0b22511a83fc71d1019662ac59e67c075a'
+            '47904e25cc5315f7a251ded96b8b7f822d0e28363827d737719aa1adde4aa87a'
             '2c7369218e81dee86f8ac15bda741b9bb34fa9cefcb087760242277a8207d511'
             '9c507bdb0062b5b54c6969f7da9ec18b259e06cd26dbe900cfe79a7ffb2713ee')
 
@@ -168,7 +168,7 @@ prepare() {
   # If it's a full config, will be replaced
   # If not, you should use scripts/config commands, one by line
   if [ -f "${startdir}/myconfig" ]; then
-    if [ $(wc -l < "${startdir}/myconfig") -gt 5000 ]; then
+    if [ $(wc -l < "${startdir}/myconfig") -gt 1000 ]; then
       # myconfig is a full config file. Replace it
       msg2 "Using user CUSTOM config..."
       cp -f "${startdir}"/myconfig .config
