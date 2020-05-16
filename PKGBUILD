@@ -57,7 +57,7 @@ fi
 #
 # More at this wiki page ---> https://wiki.archlinux.org/index.php/Modprobed-db
 if [ -z ${_localmodcfg} ]; then
-  _localmodcfg=n
+  _localmodcfg=y
 fi
 
 # Tweak kernel options prior to a build via nconfig
