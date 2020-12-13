@@ -61,7 +61,7 @@ _makenconfig=
 pkgbase=linux-xanmod
 pkgver=5.9.14
 _major=5.9
-_branch=5.x
+_branch=5.9-cachy
 xanmod=1
 pkgrel=${xanmod}
 pkgdesc='Linux Xanmod'
@@ -75,8 +75,7 @@ makedepends=(
 options=('!strip')
 _srcname="linux-${pkgver}-xanmod${xanmod}"
 
-source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar."{xz,sign}
-        "https://github.com/xanmod/linux/releases/download/${pkgver}-xanmod${xanmod}/patch-${pkgver}-xanmod${xanmod}.xz"
+source=("git+https://github.com/xanmod/linux.git#branch=$_branch"
         choose-gcc-optimization.sh
         '0001-ZEN-Add-sysctl-and-CONFIG-to-disallow-unprivileged-CLONE_NEWUSER.patch')
 validpgpkeys=(
@@ -90,11 +89,9 @@ for _patch in $_commits; do
     source+=("${_patch}.patch::https://git.archlinux.org/linux.git/patch/?id=${_patch}")
 done
 
-sha256sums=('3239a4ee1250bf2048be988cc8cb46c487b2c8a0de5b1b032d38394d5c6b1a06'
+sha256sums=('SKIP'
             'SKIP'
-            '61272350b30a72ccd8c6e4336073f8a178ff476cf8ffb76c11ab456f185da681'
-            '2c7369218e81dee86f8ac15bda741b9bb34fa9cefcb087760242277a8207d511'
-            '6c66dba73251440352f93ff32b72f5dd49536d0f17ef9347867660fd3a626991')
+            'SKIP')
 
 # If use_cachy=y or use_cacule=y then advice user to install the new package
 if [ "$use_cachy" = "y" ] || [ "$use_cacule" = "y" ]; then
@@ -107,10 +104,7 @@ export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-makepkg}
 export KBUILD_BUILD_TIMESTAMP=${KBUILD_BUILD_TIMESTAMP:-$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})}
 
 prepare() {
-  cd linux-${_major}
-
-  # Apply Xanmod patch
-  patch -Np1 -i ../patch-${pkgver}-xanmod${xanmod}
+  cd linux
 
   msg2 "Setting version..."
   scripts/setlocalversion --save-scmversion
@@ -140,6 +134,11 @@ prepare() {
     msg2 "Disabling FUNCTION_TRACER/GRAPH_TRACER..."
     scripts/config --disable CONFIG_FUNCTION_TRACER \
                    --disable CONFIG_STACK_TRACER
+  fi
+
+  if [ "$use_cachy" = "y" ]; then
+    msg2 "Enabling Cachy CPU scheduler by default..."
+    scripts/config --enable CONFIG_CACHY_SCHED
   fi
 
   if [ "$use_numa" = "n" ]; then
@@ -203,7 +202,7 @@ prepare() {
 }
 
 build() {
-  cd linux-${_major}
+  cd linux
   make -j8 CC="ccache gcc" CXX="ccache g++" CC="ccache gcc" HOSTCC="ccache gcc" -j`nproc` all
 }
 
@@ -213,7 +212,7 @@ _package() {
   optdepends=('crda: to set the correct wireless channels of your country'
               'linux-firmware: firmware images needed for some devices')
 
-  cd linux-${_major}
+  cd linux
   local kernver="$(<version)"
   local modulesdir="$pkgdir/usr/lib/modules/$kernver"
 
@@ -235,7 +234,7 @@ _package() {
 _package-headers() {
   pkgdesc="Header files and scripts for building modules for Xanmod Linux kernel"
 
-  cd linux-${_major}
+  cd linux
   local builddir="$pkgdir/usr/lib/modules/$(<version)/build"
 
   msg2 "Installing build files..."
