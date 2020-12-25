@@ -149,7 +149,7 @@ prepare() {
 
   if [ "$use_cachy" = "y" ]; then
     msg2 "Enabling Cachy CPU scheduler by default..."
-    scripts/config --enable CONFIG_CACULE_SCHED
+    scripts/config --enable CONFIG_CACHY_SCHED
   fi
 
   if [ "$use_ns" = "n" ]; then
