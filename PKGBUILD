@@ -38,7 +38,7 @@ fi
 ## Set variable "use_cachy" to: n to disable (stock Xanmod)
 ##                              y to enable
 if [ -z ${use_cachy+x} ]; then
-  use_cachy=y
+  use_cachy=n
 fi
 
 ## Enable CONFIG_USER_NS_UNPRIVILEGED flag https://aur.archlinux.org/cgit/aur.git/tree/0001-ZEN-Add-sysctl-and-CONFIG-to-disallow-unprivileged-C.patch?h=linux-ck
@@ -68,7 +68,7 @@ _makenconfig=
 pkgbase=linux-xanmod
 pkgver=5.10.2
 _major=5.10
-_branch=5.10-cacule
+_branch=5.x
 xanmod=1
 pkgrel=${xanmod}
 pkgdesc='Linux Xanmod'
@@ -82,7 +82,8 @@ makedepends=(
 options=('!strip')
 _srcname="linux-${pkgver}-xanmod${xanmod}"
 
-source=("git+https://github.com/xanmod/linux.git#branch=$_branch"
+source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar."{xz,sign}
+        "https://github.com/xanmod/linux/releases/download/${pkgver}-xanmod${xanmod}/patch-${pkgver}-xanmod${xanmod}.xz"
         choose-gcc-optimization.sh
         '0001-ZEN-Add-sysctl-and-CONFIG-to-disallow-unprivileged-CLONE_NEWUSER.patch')
 validpgpkeys=(
@@ -96,16 +97,32 @@ for _patch in $_commits; do
     source+=("${_patch}.patch::https://git.archlinux.org/linux.git/patch/?id=${_patch}")
 done
 
-sha256sums=('SKIP'
+sha256sums=('dcdf99e43e98330d925016985bfbc7b83c66d367b714b2de0cbbfcbf83d8ca43'
             'SKIP'
-            'SKIP')
+            '40ac58496ac9aa73d5355d36295598d5cf65ea4d30536f8a8969a3c02a4fcc4a'
+            '2c7369218e81dee86f8ac15bda741b9bb34fa9cefcb087760242277a8207d511'
+            '6c66dba73251440352f93ff32b72f5dd49536d0f17ef9347867660fd3a626991')
+
+# If use_cachy=y then download cachy patch
+if [ "$use_cachy" = "y" ]; then
+   echo "Cachy branch is not ready yet..." && exit 1
+   source+=("https://github.com/xanmod/linux/releases/download/${pkgver}-xanmod${xanmod}-cachy/patch-${pkgver}-xanmod${xanmod}-cachy.xz")
+   sha256sums+=('c35685c5d706a683fc0b02cf11fd40db52becae9205bf0d71f6a4a901d836d69')
+fi
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
 export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-makepkg}
 export KBUILD_BUILD_TIMESTAMP=${KBUILD_BUILD_TIMESTAMP:-$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})}
 
 prepare() {
-  cd linux
+  cd linux-${_major}
+
+  # Apply Xanmod patch
+  if [ "$use_cachy" = "y" ]; then
+    patch -Np1 -i ../patch-${pkgver}-xanmod${xanmod}-cachy
+  else
+    patch -Np1 -i ../patch-${pkgver}-xanmod${xanmod}
+  fi
 
   msg2 "Setting version..."
   scripts/setlocalversion --save-scmversion
@@ -137,11 +154,6 @@ prepare() {
                    --disable CONFIG_STACK_TRACER
   fi
 
-  if [ "$use_cachy" = "y" ]; then
-    msg2 "Enabling Cachy CPU scheduler by default..."
-    scripts/config --enable CONFIG_CACHY_SCHED
-  fi
-
   if [ "$use_numa" = "n" ]; then
     msg2 "Disabling NUMA..."
     scripts/config --disable CONFIG_NUMA
@@ -149,7 +161,7 @@ prepare() {
 
   if [ "$use_cachy" = "y" ]; then
     msg2 "Enabling Cachy CPU scheduler by default..."
-    scripts/config --enable CONFIG_CACULE_SCHED
+    scripts/config --enable CONFIG_CACHY_SCHED
   fi
 
   if [ "$use_ns" = "n" ]; then
@@ -208,7 +220,7 @@ prepare() {
 }
 
 build() {
-  cd linux
+  cd linux-${_major}
   make -j8 CC="ccache gcc" CXX="ccache g++" CC="ccache gcc" HOSTCC="ccache gcc" -j`nproc` all
 }
 
@@ -218,7 +230,7 @@ _package() {
   optdepends=('crda: to set the correct wireless channels of your country'
               'linux-firmware: firmware images needed for some devices')
 
-  cd linux
+  cd linux-${_major}
   local kernver="$(<version)"
   local modulesdir="$pkgdir/usr/lib/modules/$kernver"
 
@@ -240,7 +252,7 @@ _package() {
 _package-headers() {
   pkgdesc="Header files and scripts for building modules for Xanmod Linux kernel"
 
-  cd linux
+  cd linux-${_major}
   local builddir="$pkgdir/usr/lib/modules/$(<version)/build"
 
   msg2 "Installing build files..."
