@@ -34,13 +34,6 @@ if [ -z ${use_tracers+x} ]; then
   use_tracers=n
 fi
 
-## Enable Cachy CPU scheduler by default https://github.com/xanmod/linux/blob/5.8/Documentation/scheduler/sched-Cachy.rst
-## Set variable "use_cachy" to: n to disable (stock Xanmod)
-##                              y to enable
-if [ -z ${use_cachy+x} ]; then
-  use_cachy=n
-fi
-
 ## Enable CONFIG_USER_NS_UNPRIVILEGED flag https://aur.archlinux.org/cgit/aur.git/tree/0001-ZEN-Add-sysctl-and-CONFIG-to-disallow-unprivileged-C.patch?h=linux-ck
 ## Set variable "use_ns" to: n to disable (stock Xanmod)
 ##                           y to enable (stock Archlinux)
@@ -65,13 +58,13 @@ _makenconfig=
 
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
-pkgbase=linux-xanmod
-pkgver=5.10.2
+pkgbase=linux-xanmod-cacule
+pkgver=5.10.3
 _major=5.10
 _branch=5.x
 xanmod=1
 pkgrel=${xanmod}
-pkgdesc='Linux Xanmod'
+pkgdesc='Linux Xanmod. Branch with Cacule scheduler by Hamad Marri'
 url="http://www.xanmod.org/"
 arch=(x86_64)
 
@@ -83,7 +76,7 @@ options=('!strip')
 _srcname="linux-${pkgver}-xanmod${xanmod}"
 
 source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar."{xz,sign}
-        "https://github.com/xanmod/linux/releases/download/${pkgver}-xanmod${xanmod}/patch-${pkgver}-xanmod${xanmod}.xz"
+        "https://github.com/xanmod/linux/releases/download/${pkgver}-xanmod${xanmod}-cacule/patch-${pkgver}-xanmod${xanmod}-cacule.xz"
         choose-gcc-optimization.sh
         '0001-ZEN-Add-sysctl-and-CONFIG-to-disallow-unprivileged-CLONE_NEWUSER.patch')
 validpgpkeys=(
@@ -99,16 +92,9 @@ done
 
 sha256sums=('dcdf99e43e98330d925016985bfbc7b83c66d367b714b2de0cbbfcbf83d8ca43'
             'SKIP'
-            '40ac58496ac9aa73d5355d36295598d5cf65ea4d30536f8a8969a3c02a4fcc4a'
+            '0599f8f0ab2efe1d71dde19e47c50bb92bf38cc47ab0546124c1e7db84bfb42d'
             '2c7369218e81dee86f8ac15bda741b9bb34fa9cefcb087760242277a8207d511'
             '6c66dba73251440352f93ff32b72f5dd49536d0f17ef9347867660fd3a626991')
-
-# If use_cachy=y then download cachy patch
-if [ "$use_cachy" = "y" ]; then
-   echo "Cachy branch is not ready yet..." && exit 1
-   source+=("https://github.com/xanmod/linux/releases/download/${pkgver}-xanmod${xanmod}-cachy/patch-${pkgver}-xanmod${xanmod}-cachy.xz")
-   sha256sums+=('c35685c5d706a683fc0b02cf11fd40db52becae9205bf0d71f6a4a901d836d69')
-fi
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
 export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-makepkg}
@@ -118,11 +104,7 @@ prepare() {
   cd linux-${_major}
 
   # Apply Xanmod patch
-  if [ "$use_cachy" = "y" ]; then
-    patch -Np1 -i ../patch-${pkgver}-xanmod${xanmod}-cachy
-  else
-    patch -Np1 -i ../patch-${pkgver}-xanmod${xanmod}
-  fi
+  patch -Np1 -i ../patch-${pkgver}-xanmod${xanmod}-cacule
 
   msg2 "Setting version..."
   scripts/setlocalversion --save-scmversion
@@ -144,8 +126,7 @@ prepare() {
 
   # Enable IKCONFIG following Arch's philosophy
   scripts/config --enable CONFIG_IKCONFIG \
-                 --enable CONFIG_IKCONFIG_PROC \
-                 --enable CONFIG_USER_NS
+                 --enable CONFIG_IKCONFIG_PROC
 
   # User set. See at the top of this file
   if [ "$use_tracers" = "n" ]; then
@@ -159,10 +140,6 @@ prepare() {
     scripts/config --disable CONFIG_NUMA
   fi
 
-  if [ "$use_cachy" = "y" ]; then
-    msg2 "Enabling Cachy CPU scheduler by default..."
-    scripts/config --enable CONFIG_CACHY_SCHED
-  fi
 
   if [ "$use_ns" = "n" ]; then
     msg2 "Disabling CONFIG_USER_NS_UNPRIVILEGED"
@@ -196,13 +173,14 @@ prepare() {
     echo
   fi
 
+
   make -j8 CC="ccache gcc" CXX="ccache g++" olddefconfig
 
-  ### Optionally load needed modules for the make -j8 CC="ccache gcc" CXX="ccache g++" localmodconfig
+  ### Optionally load needed modules for the make localmodconfig
   # See https://aur.archlinux.org/packages/modprobed-db
   if [ "$_localmodcfg" = "y" ]; then
     if [ -f $HOME/.config/modprobed.db ]; then
-      msg2 "Running Steven Rostedt's make -j8 CC="ccache gcc" CXX="ccache g++" localmodconfig now"
+      msg2 "Running Steven Rostedt's make localmodconfig now"
       make -j8 CC="ccache gcc" CXX="ccache g++" LSMOD=$HOME/.config/modprobed.db localmodconfig
     else
       msg2 "No modprobed.db data found"
@@ -221,7 +199,7 @@ prepare() {
 
 build() {
   cd linux-${_major}
-  make -j8 CC="ccache gcc" CXX="ccache g++" CC="ccache gcc" HOSTCC="ccache gcc" -j`nproc` all
+  make -j8 CC="ccache gcc" CXX="ccache g++" CC="ccache gcc" HOSTCC="ccache gcc" all
 }
 
 _package() {
@@ -238,7 +216,6 @@ _package() {
   # systemd expects to find the kernel here to allow hibernation
   # https://github.com/systemd/systemd/commit/edda44605f06a41fb86b7ab8128dcf99161d2344
   install -Dm644 "$(make -j8 CC="ccache gcc" CXX="ccache g++" -s image_name)" "$modulesdir/vmlinuz"
-
   # Used by mkinitcpio to name the kernel
   echo "$pkgbase" | install -Dm644 /dev/stdin "$modulesdir/pkgbase"
 
