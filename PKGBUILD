@@ -8,12 +8,12 @@
 ##
 ## The following variables can be customized at build time. Use env or export to change at your wish
 ##
-##   Example: env _microarchitecture=25 use_numa=n use_tracers=n use_pds=n makepkg -sc
+##   Example: env _microarchitecture=99 use_numa=n use_tracers=n use_pds=n makepkg -sc
 ##
 ## Look inside 'choose-gcc-optimization.sh' to choose your microarchitecture
-## Valid numbers between: 0 to 42
+## Valid numbers between: 0 to 99
 ## Default is: 0 => generic
-## Good option if your package is for one machine: 42 => native
+## Good option if your package is for one machine: 99 => native
 if [ -z ${_microarchitecture+x} ]; then
   _microarchitecture=42
 fi
@@ -59,7 +59,7 @@ _makenconfig=
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
 pkgbase=linux-xanmod-cacule
-pkgver=5.10.10
+pkgver=5.10.12
 _major=5.10
 _branch=5.x
 xanmod=1
@@ -92,8 +92,8 @@ done
 
 sha256sums=('dcdf99e43e98330d925016985bfbc7b83c66d367b714b2de0cbbfcbf83d8ca43'
             'SKIP'
-            '1ed722b6d1e18f82dd6d64a4598ac6b6a1c5bd165bdc098fbb886241b0cd7fc1'
-            '2c7369218e81dee86f8ac15bda741b9bb34fa9cefcb087760242277a8207d511'
+            '9335f23561cc7796609783418659c1402fc67008a3f0ea39d822f742aec0731b'
+            '03bb8b234a67b877a34a8212936ba69d8700c54c7877686cbd9742a536c87134'
             '6c66dba73251440352f93ff32b72f5dd49536d0f17ef9347867660fd3a626991')
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
@@ -150,21 +150,23 @@ prepare() {
   sh ${srcdir}/choose-gcc-optimization.sh $_microarchitecture
 
   # This is intended for the people that want to build this package with their own config
-  # Put the file "myconfig" at the package folder to use this feature
-  # If it's a full config, will be replaced
-  # If not, you should use scripts/config commands, one by line
-  if [ -f "${startdir}/myconfig" ]; then
-    if ! grep -q 'scripts/config' "${startdir}/myconfig"; then
-      # myconfig is a full config file. Replacing default .config
-      msg2 "Using user CUSTOM config..."
-      cp -f "${startdir}"/myconfig .config
-    else
-      # myconfig is a partial file. Executing as a script
-      msg2 "Applying myconfig..."
-      bash -x "${startdir}"/myconfig
+  # Put the file "myconfig" at the package folder (this will take preference) or "${XDG_CONFIG_HOME}/linux-xanmod/myconfig"
+  # If we detect partial file with scripts/config commands, we execute as a script
+  # If not, it's a full config, will be replaced
+  for _myconfig in "${startdir}/myconfig" "${XDG_CONFIG_HOME}/linux-xanmod/myconfig" ; do
+    if [ -f "${_myconfig}" ]; then
+      if grep -q 'scripts/config' "${_myconfig}"; then
+        # myconfig is a partial file. Executing as a script
+        msg2 "Applying myconfig..."
+        bash -x "${_myconfig}"
+      else
+        # myconfig is a full config file. Replacing default .config
+        msg2 "Using user CUSTOM config..."
+        cp -f "${_myconfig}" .config
+      fi
+      echo
     fi
-    echo
-  fi
+  done
 
 
   make -j8 CC="ccache gcc" CXX="ccache g++" olddefconfig
