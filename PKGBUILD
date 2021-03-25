@@ -156,24 +156,24 @@ prepare() {
     fi
   done
 
-  make -j8 CC="ccache gcc" CXX="ccache g++" olddefconfig
+  make -j8 LLVM=1 CC="ccache clang" olddefconfig
 
-  ### Optionally load needed modules for the make -j8 CC="ccache gcc" CXX="ccache g++" localmodconfig
+  ### Optionally load needed modules for the make localmodconfig
   # See https://aur.archlinux.org/packages/modprobed-db
   if [ "$_localmodcfg" = "y" ]; then
     if [ -f $HOME/.config/modprobed.db ]; then
-      msg2 "Running Steven Rostedt's make -j8 CC="ccache gcc" CXX="ccache g++" localmodconfig now"
-      make -j8 CC="ccache gcc" CXX="ccache g++" LSMOD=$HOME/.config/modprobed.db localmodconfig
+      msg2 "Running Steven Rostedt's make localmodconfig now"
+      make -j8 LLVM=1 CC="ccache clang" LSMOD=$HOME/.config/modprobed.db localmodconfig
     else
       msg2 "No modprobed.db data found"
       exit
     fi
   fi
 
-  make -j8 CC="ccache gcc" CXX="ccache g++" -s kernelrelease > version
+  make -j8 LLVM=1 CC="ccache clang" -s kernelrelease > version
   msg2 "Prepared %s version %s" "$pkgbase" "$(<version)"
 
-  [[ -z "$_makenconfig" ]] || make -j8 CC="ccache gcc" CXX="ccache g++" nconfig
+  [[ -z "$_makenconfig" ]] || make -j8 LLVM=1 CC="ccache clang" nconfig
 
   # save configuration for later reuse
   cat .config > "${startdir}/config.last"
@@ -181,7 +181,7 @@ prepare() {
 
 build() {
   cd linux-${_major}
-  make -j8 CC="ccache gcc" CXX="ccache g++" CC="ccache gcc" HOSTCC="ccache gcc" -j`nproc` all
+  make -j8 LLVM=1 CC="ccache clang" all
 }
 
 _package() {
@@ -197,13 +197,13 @@ _package() {
   msg2 "Installing boot image..."
   # systemd expects to find the kernel here to allow hibernation
   # https://github.com/systemd/systemd/commit/edda44605f06a41fb86b7ab8128dcf99161d2344
-  install -Dm644 "$(make -j8 CC="ccache gcc" CXX="ccache g++" -s image_name)" "$modulesdir/vmlinuz"
+  install -Dm644 "$(make -j8 LLVM=1 CC="ccache clang" -s image_name)" "$modulesdir/vmlinuz"
 
   # Used by mkinitcpio to name the kernel
   echo "$pkgbase" | install -Dm644 /dev/stdin "$modulesdir/pkgbase"
 
   msg2 "Installing modules..."
-  make -j8 CC="ccache gcc" CXX="ccache g++" INSTALL_MOD_PATH="$pkgdir/usr" INSTALL_MOD_STRIP=1 modules_install
+  make -j8 LLVM=1 CC="ccache clang" INSTALL_MOD_PATH="$pkgdir/usr" INSTALL_MOD_STRIP=1 modules_install
 
   # remove build and source links
   rm "$modulesdir"/{source,build}
