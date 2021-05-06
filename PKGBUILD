@@ -52,10 +52,10 @@ _makenconfig=
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
 pkgbase=linux-xanmod
-_major=5.11
-pkgver=${_major}.16
+_major=5.12
+pkgver=${_major}.1
 _branch=5.x
-xanmod=1
+xanmod=2
 pkgrel=${xanmod}
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -84,10 +84,10 @@ for _patch in ${_patches[@]}; do
     source+=("${_patch}::https://git.archlinux.org/svntogit/packages.git/plain/trunk/${_patch}?h=packages/linux&id=${_commit}")
 done
 
-sha256sums=('04f07b54f0d40adfab02ee6cbd2a942c96728d87c1ef9e120d0cb9ba3fe067b4'
+sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             'SKIP'
-            '3ba2a77d4cd9ab5a63a137a8fb18a9d27e7e3172b2130ad34888ae24f13086b2'
-            '03bb8b234a67b877a34a8212936ba69d8700c54c7877686cbd9742a536c87134'
+            'e304fded229a9f3134fd20a96ae111ca9a68f0a872384511662bb36b83560d86'
+            '51742dee57cd15bece152d6527f48af87cb7930f0f6a356d5282f778e7c35b39'
             '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb')
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
