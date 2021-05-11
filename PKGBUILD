@@ -13,7 +13,7 @@
 ## Look inside 'choose-gcc-optimization.sh' to choose your microarchitecture
 ## Valid numbers between: 0 to 99
 ## Default is: 0 => generic
-## Good option if your package is for one machine: 99 => native
+## Good option if your package is for one machine: 98 (Intel native) or 99 (AMD native)
 if [ -z ${_microarchitecture+x} ]; then
   _microarchitecture=99
 fi
@@ -53,9 +53,9 @@ _makenconfig=
 
 pkgbase=linux-xanmod
 _major=5.12
-pkgver=${_major}.1
+pkgver=${_major}.2
 _branch=5.x
-xanmod=2
+xanmod=1
 pkgrel=${xanmod}
 pkgdesc='Linux Xanmod'
 url="http://www.xanmod.org/"
@@ -86,7 +86,7 @@ done
 
 sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             'SKIP'
-            'e304fded229a9f3134fd20a96ae111ca9a68f0a872384511662bb36b83560d86'
+            '9c222ec39d6e77ec71233f13eb8c4140c25eded7aa94347dc14512517f113667'
             '51742dee57cd15bece152d6527f48af87cb7930f0f6a356d5282f778e7c35b39'
             '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb')
 
