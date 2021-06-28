@@ -58,7 +58,7 @@ _makenconfig=
 
 pkgbase=linux-xanmod
 _major=5.12
-pkgver=${_major}.10
+pkgver=${_major}.13
 _branch=5.x
 xanmod=1
 pkgrel=${xanmod}
@@ -70,6 +70,9 @@ license=(GPL2)
 makedepends=(
   xmlto kmod inetutils bc libelf cpio
 )
+if [ "${_compiler}" = "clang" ]; then
+  makedepends+=(clang llvm)
+fi
 options=('!strip')
 _srcname="linux-${pkgver}-xanmod${xanmod}"
 
@@ -91,7 +94,7 @@ done
 
 sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             'SKIP'
-            'ad47cc2b1e14ad443a419af5c56c3adc29f299b399ddac72a6fd5cfc5c64265d'
+            'd92f080fffa287fbdbc0a9c58dec0031d1368d94401d5ebeb9fce56a34ea35d3'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
             '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb')
 
@@ -101,12 +104,6 @@ export KBUILD_BUILD_TIMESTAMP=${KBUILD_BUILD_TIMESTAMP:-$(date -Ru${SOURCE_DATE_
 
 prepare() {
   cd linux-${_major}
-
-  # hacky work around for xz not getting extracted
-  # https://bbs.archlinux.org/viewtopic.php?id=265115
-  if [[ ! -f "$srcdir/patch-${pkgver}-xanmod${xanmod}" ]]; then
-    xz -dc "$SRCDEST/patch-${pkgver}-xanmod${xanmod}.xz" > "$srcdir/patch-${pkgver}-xanmod${xanmod}"
-  fi
 
   # Apply Xanmod patch
   patch -Np1 -i ../patch-${pkgver}-xanmod${xanmod}
@@ -128,6 +125,12 @@ prepare() {
 
   # Applying configuration
   cp -vf CONFIGS/xanmod/${_compiler}/config .config
+  # enable LTO_CLANG_THIN
+  if [ "${_compiler}" = "clang" ]; then
+    scripts/config --disable LTO_CLANG_FULL
+    scripts/config --enable LTO_CLANG_THIN
+    _LLVM=1
+  fi
 
   # CONFIG_STACK_VALIDATION gives better stack traces. Also is enabled in all official kernel packages by Archlinux team
   scripts/config --enable CONFIG_STACK_VALIDATION
@@ -139,9 +142,11 @@ prepare() {
 
   # User set. See at the top of this file
   if [ "$use_tracers" = "n" ]; then
-    msg2 "Disabling FUNCTION_TRACER/GRAPH_TRACER..."
-    scripts/config --disable CONFIG_FUNCTION_TRACER \
-                   --disable CONFIG_STACK_TRACER
+    msg2 "Disabling FUNCTION_TRACER/GRAPH_TRACER only if we are not compiling with clang..."
+    if [ "${_compiler}" = "gcc" ]; then
+      scripts/config --disable CONFIG_FUNCTION_TRACER \
+                     --disable CONFIG_STACK_TRACER
+    fi
   fi
 
   if [ "$use_numa" = "n" ]; then
@@ -157,7 +162,7 @@ prepare() {
   # If we detect partial file with scripts/config commands, we execute as a script
   # If not, it's a full config, will be replaced
   for _myconfig in "${SRCDEST}/myconfig" "${HOME}/.config/linux-xanmod/myconfig" "${XDG_CONFIG_HOME}/linux-xanmod/myconfig" ; do
-    if [ -f "${_myconfig}" ]; then
+    if [ -f "${_myconfig}" ] && [ "$(wc -l <"${_myconfig}")" -gt "0" ]; then
       if grep -q 'scripts/config' "${_myconfig}"; then
         # myconfig is a partial file. Executing as a script
         msg2 "Applying myconfig..."
@@ -172,24 +177,24 @@ prepare() {
     fi
   done
 
-  make -j8 LLVM=1 CC="ccache clang" olddefconfig
-
   ### Optionally load needed modules for the make localmodconfig
   # See https://aur.archlinux.org/packages/modprobed-db
   if [ "$_localmodcfg" = "y" ]; then
     if [ -f $HOME/.config/modprobed.db ]; then
       msg2 "Running Steven Rostedt's make localmodconfig now"
-      make -j8 LLVM=1 CC="ccache clang" LSMOD=$HOME/.config/modprobed.db localmodconfig
+      make LLVM=$_LLVM LLVM_IAS=$_LLVM LSMOD=$HOME/.config/modprobed.db localmodconfig
     else
       msg2 "No modprobed.db data found"
       exit
     fi
   fi
 
-  make -j8 LLVM=1 CC="ccache clang" -s kernelrelease > version
+  make LLVM=$_LLVM LLVM_IAS=$_LLVM olddefconfig
+
+  make -s kernelrelease > version
   msg2 "Prepared %s version %s" "$pkgbase" "$(<version)"
 
-  [[ -z "$_makenconfig" ]] || make -j8 LLVM=1 CC="ccache clang" nconfig
+  [[ -z "$_makenconfig" ]] || make LLVM=$_LLVM LLVM_IAS=$_LLVM nconfig
 
   # save configuration for later reuse
   cat .config > "${SRCDEST}/config.last"
@@ -198,7 +203,7 @@ prepare() {
 build() {
   cd linux-${_major}
   if [ "${_compiler}" = "clang" ]; then
-    make -j8 CC="ccache clang" LLVM=1 LLVM_IAS=1 all
+    make -j8 CC="ccache clang" LLVM=$_LLVM LLVM_IAS=$_LLVM all
   else
     make -j8 all
   fi
