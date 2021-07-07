@@ -8,7 +8,7 @@
 ##
 ## The following variables can be customized at build time. Use env or export to change at your wish
 ##
-##   Example: env _microarchitecture=99 use_numa=n use_tracers=n use_pds=n makepkg -sc
+##   Example: env _microarchitecture=98 use_numa=n use_tracers=n makepkg -sc
 ##
 ## Look inside 'choose-gcc-optimization.sh' to choose your microarchitecture
 ## Valid numbers between: 0 to 99
@@ -57,12 +57,12 @@ _makenconfig=
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
 
 pkgbase=linux-xanmod
-_major=5.13
-pkgver=${_major}.0
+_major=5.12
+pkgver=${_major}.14
 _branch=5.x
 xanmod=1
 pkgrel=${xanmod}
-pkgdesc='Linux Xanmod'
+pkgdesc='Linux Xanmod - Current Stable (STABLE)'
 url="http://www.xanmod.org/"
 arch=(x86_64)
 
@@ -71,7 +71,7 @@ makedepends=(
   xmlto kmod inetutils bc libelf cpio
 )
 if [ "${_compiler}" = "clang" ]; then
-  makedepends+=(clang llvm)
+  makedepends+=(clang llvm lld python)
 fi
 options=('!strip')
 _srcname="linux-${pkgver}-xanmod${xanmod}"
@@ -86,17 +86,17 @@ validpgpkeys=(
 )
 
 # Archlinux patches
-_commit="be7d4710850020de55bce930c83fa80347c02fc3"
-_patches=("sphinx-workaround.patch")
+_commit="ec9e9a4219fe221dec93fa16fddbe44a34933d8d"
+_patches=()
 for _patch in ${_patches[@]}; do
-    source+=("${_patch}::https://git.archlinux.org/svntogit/packages.git/plain/trunk/${_patch}?h=packages/linux&id=${_commit}")
+    #source+=("${_patch}::https://git.archlinux.org/svntogit/packages.git/plain/trunk/${_patch}?h=packages/linux&id=${_commit}")
+    source+=("${_patch}::https://raw.githubusercontent.com/archlinux/svntogit-packages/${_commit}/trunk/${_patch}")
 done
 
-sha256sums=('3f6baa97f37518439f51df2e4f3d65a822ca5ff016aa8e60d2cc53b95a6c89d9'
+sha256sums=('7d0df6f2bf2384d68d0bd8e1fe3e071d64364dcdc6002e7b5c87c92d48fac366'
             'SKIP'
-            'e829aa290b5f00812d9f496e4e3397621f9184e0c07db05d328ba83e69d1b34f'
-            '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
-            '52fc0fcd806f34e774e36570b2a739dbdf337f7ff679b1c1139bee54d03301eb')
+            '0006a71592950f37ecfa7f8e2560699731b92712ddfb7639922bc260ccd1552b'
+            '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee')
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
 export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-makepkg}
