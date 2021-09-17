@@ -193,8 +193,9 @@ prepare() {
   msg2 "Enabling ashmem and binder modules"
   scripts/config --module CONFIG_ASHMEM
   scripts/config --enable CONFIG_ANDROID
-  scripts/config --module CONFIG_ANDROID_BINDER_IPC
-  scripts/config --set-str CONFIG_ANDROID_BINDER_DEVICES "binder,hwbinder,vndbinder"
+  scripts/config --enable CONFIG_ANDROID_BINDER_IPC
+  scripts/config --enable CONFIG_ANDROID_BINDERFS
+  scripts/config --set-str CONFIG_ANDROID_BINDER_DEVICES ""
 
   make LLVM=$_LLVM LLVM_IAS=$_LLVM olddefconfig
 
