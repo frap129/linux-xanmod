@@ -15,7 +15,7 @@
 ## Default is: 0 => generic
 ## Good option if your package is for one machine: 98 (Intel native) or 99 (AMD native)
 if [ -z ${_microarchitecture+x} ]; then
-  _microarchitecture=0
+  _microarchitecture=98
 fi
 
 ## Disable NUMA since most users do not have multiple processors. Breaks CUDA/NvEnc.
@@ -23,7 +23,7 @@ fi
 ## Set variable "use_numa" to: n to disable (possibly increase performance)
 ##                             y to enable  (stock default)
 if [ -z ${use_numa+x} ]; then
-  use_numa=y
+  use_numa=n
 fi
 
 ## For performance you can disable FUNCTION_TRACER/GRAPH_TRACER. Limits debugging and analyzing of the kernel.
@@ -31,12 +31,12 @@ fi
 ## Set variable "use_tracers" to: n to disable (possibly increase performance)
 ##                                y to enable  (stock default)
 if [ -z ${use_tracers+x} ]; then
-  use_tracers=y
+  use_tracers=n
 fi
 
 ## Choose between GCC and CLANG config (default is GCC)
 if [ -z ${_compiler+x} ]; then
-  _compiler=gcc
+  _compiler=clang
 fi
 
 # Compress modules with ZSTD (to save disk space)
@@ -53,7 +53,7 @@ fi
 #
 # More at this wiki page ---> https://wiki.archlinux.org/index.php/Modprobed-db
 if [ -z ${_localmodcfg} ]; then
-  _localmodcfg=n
+  _localmodcfg=y
 fi
 
 # Tweak kernel options prior to a build via nconfig
@@ -210,7 +210,11 @@ prepare() {
 
 build() {
   cd linux-${_major}
-  make LLVM=$_LLVM LLVM_IAS=$_LLVM all
+  if [ "${_compiler}" = "clang" ]; then
+    make -j8 CC="ccache clang" LLVM=$_LLVM LLVM_IAS=$_LLVM all
+  else
+    make -j8 all
+  fi
 }
 
 _package() {
