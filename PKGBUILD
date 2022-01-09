@@ -15,7 +15,7 @@
 ## Default is: 0 => generic
 ## Good option if your package is for one machine: 98 (Intel native) or 99 (AMD native)
 if [ -z ${_microarchitecture+x} ]; then
-  _microarchitecture=98
+  _microarchitecture=99
 fi
 
 ## Disable NUMA since most users do not have multiple processors. Breaks CUDA/NvEnc.
@@ -53,7 +53,7 @@ fi
 #
 # More at this wiki page ---> https://wiki.archlinux.org/index.php/Modprobed-db
 if [ -z ${_localmodcfg} ]; then
-  _localmodcfg=y
+  _localmodcfg=n
 fi
 
 # Tweak kernel options prior to a build via nconfig
@@ -218,9 +218,9 @@ prepare() {
 build() {
   cd linux-${_major}
   if [ "${_compiler}" = "clang" ]; then
-    make -j8 CC="ccache clang" LLVM=$_LLVM LLVM_IAS=$_LLVM all
+    make -j`nproc` CC="ccache clang" LLVM=$_LLVM LLVM_IAS=$_LLVM all
   else
-    make -j8 all
+    make -j`nproc` all
   fi
 }
 
