@@ -50,7 +50,7 @@ fi
 #
 # More at this wiki page ---> https://wiki.archlinux.org/index.php/Modprobed-db
 if [ -z ${_localmodcfg} ]; then
-  _localmodcfg=n
+  _localmodcfg=y
 fi
 
 # Tweak kernel options prior to a build via nconfig
@@ -200,6 +200,9 @@ prepare() {
   scripts/config --enable CONFIG_ANDROID
   scripts/config --module CONFIG_ANDROID_BINDER_IPC
   scripts/config --set-str CONFIG_ANDROID_BINDER_DEVICES "binder,hwbinder,vndbinder"
+
+  # Enable automount support
+  scripts/config --enable COFNIG_AUTOFS4_FS
 
   make LLVM=$_LLVM LLVM_IAS=$_LLVM olddefconfig
 
