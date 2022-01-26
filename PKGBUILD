@@ -31,9 +31,24 @@ if [ -z ${use_tracers+x} ]; then
   use_tracers=n
 fi
 
+## Enable multigenerational LRU by default
+if [ -z ${use_lru+x} ]; then
+  use_lru=y
+fi
+
 ## Choose between GCC and CLANG config (default is GCC)
 if [ -z ${_compiler+x} ]; then
   _compiler=clang
+fi
+
+## Enable -O3 compiler flag
+if [ -z ${_opt_o3+x} ]; then
+  _opt_o3=y
+fi
+
+## CLANG ONLY: Enable full LTO instead of ThinLTO
+if [ -z ${use_thin_lto+x} ]; then
+  use_thin_lto=n
 fi
 
 # Compress modules with ZSTD (to save disk space)
@@ -80,7 +95,35 @@ _srcname="linux-${pkgver}-xanmod${xanmod}"
 
 source=("https://cdn.kernel.org/pub/linux/kernel/v${_branch}/linux-${_major}.tar."{xz,sign}
         "https://github.com/xanmod/linux/releases/download/${pkgver}-xanmod${xanmod}-tt/patch-${pkgver}-xanmod${xanmod}-tt.xz"
-        choose-gcc-optimization.sh)
+        "choose-gcc-optimization.sh"
+
+        # 5.16: don't drop shared caches on C3 state transitions
+        "x86-ACPI-State-Optimize-C3-entry-on-AMD-CPUs.patch"
+
+        # 5.16 spectre defaults
+        "x86-change-default-to-spec_store_bypass_disable-prct.patch"
+
+        # -- patch from Chromium developers; more accurately report battery state changes
+        "acpi-battery-Always-read-fresh-battery-state-on-update.patch"
+
+        # -- squelch overzealous 802.11 regdomain not set warnings
+        "cfg80211-dont-WARN-if-a-self-managed-device.patch"
+
+        # ASUS ROG patches
+        "HID-asus-Reduce-object-size-by-consolidating-calls.patch"
+        "v16-asus-wmi-Add-support-for-custom-fan-curves.patch"
+
+        # mediatek mt7921 bt/wifi patches
+        "1-2-mt76-mt7915-send-EAPOL-frames-at-lowest-rate.patch"
+        "2-2-mt76-mt7921-send-EAPOL-frames-at-lowest-rate.patch"
+        "mt76-mt7921-enable-VO-tx-aggregation.patch"
+        "1-2-mt76-mt7921-robustify-hardware-initialization-flow.patch"
+        "1-2-Bluetooth-btusb-Add-Mediatek-MT7921-support-for-Foxconn.patch"
+        "2-2-Bluetooth-btusb-Add-Mediatek-MT7921-support-for-IMC-Network.patch"
+        "Bluetooth-btusb-Add-support-for-IMC-Networks-Mediatek-Chip.patch"
+        "Bluetooth-btusb-Add-support-for-Foxconn-Mediatek-Chip.patch"
+        "Bluetooth-btusb-Add-support-for-IMC-Networks-Mediatek-Chip-MT7921.patch")
+
 validpgpkeys=(
     'ABAF11C65A2970B130ABE3C479BE3E4300411886' # Linux Torvalds
     '647F28654894E3BD457199BE38DBBDC86092693E' # Greg Kroah-Hartman
@@ -97,7 +140,22 @@ done
 sha256sums=('57b2cf6991910e3b67a1b3490022e8a0674b6965c74c12da1e99d138d1991ee8'
             'SKIP'
             '3a0c85cd0b4e9d11394839a14903dd09bc966c37098a3610c12bb2ba42b33cee'
-            '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee')
+            '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
+            '923230ed8367e28adfdeed75d3cdba9eec6b781818c37f6f3d3eb64101d2e716'
+            'cc401107f1bf7b7d8e8a78ee594f9db4b6fa252b7239b6aa88f678aef84d935c'
+            'f7a4bf6293912bfc4a20743e58a5a266be8c4dbe3c1862d196d3a3b45f2f7c90'
+            '3d8961438b5c8110588ff0b881d472fc71a4304d306808d78a4055a4150f351e'
+            '544464bf0807b324120767d55867f03014a9fda4e1804768ca341be902d7ade4'
+            '0c422d8f420c1518aab1b980c6cdb6e029a4fa9cde1fd99a63670bb105a44f36'
+            '4bfbff4eba07fc9de2ce78097a4a269509468ba0e24c15a82905cd94e093ad55'
+            '021f8539ab2fb722b46937b95fdab22a2308236a24ecc1a9ea8db4853721dd39'
+            '1ce9fd988201c4d2e48794c58acda5b768ec0fea1d29555e99d35cd2712281e4'
+            'c368cc4eefff20b7ae904eec686b7e72b46ff02b32c8a4fbd6bd4039f087e7ba'
+            '236cdadf0b1472945c0d7570caeed7b95929aabed6872319c9d0969a819689e9'
+            'cc2aa580d69801aa1afb0d72ecf094fe13c797363d3d5928c868d3a389910b7b'
+            '292a7e32b248c7eee6e2f5407d609d03d985f367d329adb02b9d6dba1f85b44c'
+            '7dbfdd120bc155cad1879579cb9dd1185eb5e37078c8c93fef604a275a163812'
+            '1444af2e125080934c67b6adb4561fd354a72ce47d3de393b24f53832ee492ac')
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
 export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-makepkg}
@@ -106,33 +164,54 @@ export KBUILD_BUILD_TIMESTAMP=${KBUILD_BUILD_TIMESTAMP:-$(date -Ru${SOURCE_DATE_
 prepare() {
   cd linux-${_major}
 
-  # Apply Xanmod patch
-  patch -Np1 -i ../patch-${pkgver}-xanmod${xanmod}-tt
+  # Apply patches
+  local src
+  for src in "${source[@]}"; do
+    src="${src%%::*}"
+    src="${src##*/}"
+    case "$src" in
+      patch-${_major}*xanmod*.xz)
+        # Apply Xanmod patch
+        msg2 "Applying Xanmod patch..."
+        patch -Np1 -i "../${src%\.xz}"
+        ;;
+      patch-${_major}*xz|Linux-${_major}*.xz)
+        # Apply kernel.org point releases if we're building ahead of Xanmod official
+        msg2 "Applying kernel.org point release ${src%\.xz} ..."
+        patch -Np1 -i "../${src%\.xz}"
+        ;;
+      *.patch|*.patch.xz|*.diff|*.diff.xz)
+        # Apply any other patches
+        msg2 "Applying patch ${src%\.xz} ..."
+        patch -Np1 -i "../${src%\.xz}"
+        ;;
+    esac
+  done
 
   msg2 "Setting version..."
   scripts/setlocalversion --save-scmversion
   echo "-$pkgrel" > localversion.10-pkgrel
   #echo "${pkgbase#linux-xanmod}" > localversion.20-pkgname
 
-  # Archlinux patches
-  local src
-  for src in "${source[@]}"; do
-    src="${src%%::*}"
-    src="${src##*/}"
-    [[ $src = *.patch ]] || continue
-    msg2 "Applying patch $src..."
-    patch -Np1 < "../$src"
-  done
-
   # Applying configuration
   cp -vf CONFIGS/xanmod/${_compiler}/config .config
-  # enable LTO_CLANG_THIN
+
+  # Enable Clang
   if [ "${_compiler}" = "clang" ]; then
-    scripts/config --disable LTO_CLANG_FULL
-    scripts/config --enable LTO_CLANG_THIN
+  	if [ "$use_thin_lto" = "y" ]; then
+      scripts/config --disable LTO_CLANG_FULL
+      scripts/config --enable LTO_CLANG_THIN
+    else
+      scripts/config --enable LTO_CLANG_FULL
+	fi
     _LLVM=1
   fi
 
+  if [ "${_opt_o3}" = "y" ]; then
+    msg2 "Enabling -O3 optimizations ..."
+    scripts/config --disable CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE \
+                   --enable CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3
+  fi
   # CONFIG_STACK_VALIDATION gives better stack traces. Also is enabled in all official kernel packages by Archlinux team
   scripts/config --enable CONFIG_STACK_VALIDATION
 
@@ -161,6 +240,12 @@ prepare() {
 
   # Let's user choose microarchitecture optimization in GCC
   sh ${srcdir}/choose-gcc-optimization.sh $_microarchitecture
+
+    # apply package config customizations
+  if [[ -s ${startdir}/xanmod-rog-config ]]; then
+    msg2 "Applying package config customization..."
+    bash -x "${startdir}/xanmod-rog-config"
+  fi
 
   # This is intended for the people that want to build this package with their own config
   # Put the file "myconfig" at the package folder (this will take preference) or "${XDG_CONFIG_HOME}/linux-xanmod/myconfig"
@@ -204,6 +289,13 @@ prepare() {
   # Enable automount support
   scripts/config --enable COFNIG_AUTOFS4_FS
 
+  # Enable LRU
+  if [ "$use_lru" = "y" ]; then
+    msg2 "Enable LRU"
+    scripts/config --enable CONFIG_LRU_GEN_ENABLED
+    scripts/config --disable CONFIG_LRU_GEN_STATS
+  fi
+  
   make LLVM=$_LLVM LLVM_IAS=$_LLVM olddefconfig
 
   make -s kernelrelease > version
