@@ -77,9 +77,9 @@ fi
 
 pkgbase=linux-xanmod-tt
 _major=5.15
-pkgver=${_major}.17
+pkgver=${_major}.19
 _branch=5.x
-xanmod=2
+xanmod=1
 pkgrel=${xanmod}
 pkgdesc='Linux Xanmod. Development branch with the Task Type CPU Scheduler by Hamad Al Marri'
 url="http://www.xanmod.org/"
@@ -141,7 +141,7 @@ done
 
 sha256sums=('57b2cf6991910e3b67a1b3490022e8a0674b6965c74c12da1e99d138d1991ee8'
             'SKIP'
-            '75449be75303197f6d3d50b71caae9158f574bff86cb2e43346066cec9e1af6c'
+            'cbd76cd18e71a08528c2dd413adfaa5a417f9f3dbd337d47ae495b875b1c907c'
             '1ac18cad2578df4a70f9346f7c6fccbb62f042a0ee0594817fdef9f2704904ee'
             '923230ed8367e28adfdeed75d3cdba9eec6b781818c37f6f3d3eb64101d2e716'
             'cc401107f1bf7b7d8e8a78ee594f9db4b6fa252b7239b6aa88f678aef84d935c'
