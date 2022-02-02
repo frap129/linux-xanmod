@@ -291,6 +291,9 @@ prepare() {
   # Enable automount support
   scripts/config --enable COFNIG_AUTOFS4_FS
 
+  # Enable RCU priority boosting
+  scripts/config --enable CONFIG_RCU_BOOST
+
   # Enable LRU
   if [ "$use_lru" = "y" ]; then
     msg2 "Enable LRU"
