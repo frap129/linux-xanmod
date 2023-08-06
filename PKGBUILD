@@ -25,7 +25,7 @@ fi
 
 ## Since upstream disabled CONFIG_STACK_TRACER (limits debugging and analyzing of the kernel)
 ## you can enable them setting this option. Caution, because they have an impact in performance.
-## Stock Archlinux has this enabled. 
+## Stock Archlinux has this enabled.
 ## Set variable "use_tracers" to: n to disable (possibly increase performance, XanMod default)
 ##                                y to enable  (Archlinux default)
 if [ -z ${use_tracers+x} ]; then
@@ -44,11 +44,11 @@ if [ "${_compiler}" = "clang" ]; then
 fi
 
 # Choose between the 4 main configs for stable branch. Default x86-64-v1 which use CONFIG_GENERIC_CPU2:
-# Possible values: config_x86-64-v1 (default) / config_x86-64-v2 / config_x86-64-v3 / config_x86-64-v4
+# Possible values: config_x86-64-v1 / config_x86-64-v2 (default) / config_x86-64-v3 / config_x86-64-v4
 # This will be overwritten by selecting any option in microarchitecture script
 # Source files: https://github.com/xanmod/linux/tree/5.17/CONFIGS/xanmod/gcc
 if [ -z ${_config+x} ]; then
-  _config=config_x86-64-v1
+  _config=config_x86-64-v2
 fi
 
 # Compress modules with ZSTD (to save disk space)
@@ -77,12 +77,12 @@ fi
 
 pkgbase=linux-xanmod
 _major=6.4
-pkgver=${_major}.1
+pkgver=${_major}.8
 _branch=6.x
 xanmod=1
 _revision=
 pkgrel=${xanmod}
-pkgdesc='Linux Xanmod - Current Stable (CURRENT)'
+pkgdesc='Linux Xanmod - Stable Mainline [MAIN]'
 url="http://www.xanmod.org/"
 arch=(x86_64)
 
@@ -115,8 +115,8 @@ done
 
 sha256sums=('8fa0588f0c2ceca44cac77a0e39ba48c9f00a6b9dc69761c02a5d3efac8da7f3'
             'SKIP'
-            'a91550fc14f7f747b00c8dcf5a9ef74365d6d01ced230b5c84fddd354258dd3d'
-            '5c84bfe7c1971354cff3f6b3f52bf33e7bbeec22f85d5e7bfde383b54c679d30')
+            '8e3ada9a004bc6506e083fc232234bb4f422a51f37c8398fc5527200c27aa858'
+            'a8b38eb482eb685944757182c4886404abc12703e5e56ec39c7d61298d17d71f')
 
 export KBUILD_BUILD_HOST=${KBUILD_BUILD_HOST:-archlinux}
 export KBUILD_BUILD_USER=${KBUILD_BUILD_USER:-makepkg}
@@ -157,6 +157,10 @@ prepare() {
   scripts/config --enable CONFIG_IKCONFIG \
                  --enable CONFIG_IKCONFIG_PROC \
                  --enable CONFIG_USER_NS
+
+  # Requested by Alexandre Frade to fix issues in python-gbinder
+  scripts/config --enable CONFIG_ANDROID_BINDERFS
+  scripts/config --enable CONFIG_ANDROID_BINDER_IPC
 
   # User set. See at the top of this file
   if [ "$use_tracers" = "y" ]; then
