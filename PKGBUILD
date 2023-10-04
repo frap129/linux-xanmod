@@ -12,7 +12,7 @@
 ## Default is: 0 => generic
 ## Good option if your package is for one machine: 98 (Intel native) or 99 (AMD native)
 if [ -z ${_microarchitecture+x} ]; then
-  _microarchitecture=98
+  _microarchitecture=99
 fi
 
 ## Disable NUMA since most users do not have multiple processors. Breaks CUDA/NvEnc.
@@ -34,13 +34,9 @@ fi
 
 # Unique compiler supported upstream is GCC
 ## Choose between GCC and CLANG config (default is GCC)
-if [ -z ${_compiler+x} ]; then
-  _compiler=clang
-fi
-
 ## Use the environment variable "_compiler=clang"
-if [ "${_compiler}" = "clang" ]; then
-  _compiler_flags="CC=clang HOSTCC=clang LLVM=1 LLVM_IAS=1"
+if [ "${_compiler}" != "gcc" ]; then
+  _compiler_flags="-j8 CC=clang HOSTCC=clang LLVM=1 LLVM_IAS=1"
 fi
 
 # Choose between the 4 main configs for stable branch. Default x86-64-v1 which use CONFIG_GENERIC_CPU2:
@@ -48,7 +44,7 @@ fi
 # This will be overwritten by selecting any option in microarchitecture script
 # Source files: https://github.com/xanmod/linux/tree/5.17/CONFIGS/xanmod/gcc
 if [ -z ${_config+x} ]; then
-  _config=config_x86-64-v2
+  _config=config_x86-64-v3
 fi
 
 # Compress modules with ZSTD (to save disk space)
@@ -65,12 +61,12 @@ fi
 #
 # More at this wiki page ---> https://wiki.archlinux.org/index.php/Modprobed-db
 if [ -z ${_localmodcfg} ]; then
-  _localmodcfg=y
+  _localmodcfg=n
 fi
 
 # Tweak kernel options prior to a build via nconfig
 if [ -z ${_makenconfig} ]; then
-  _makenconfig=y
+  _makenconfig=n
 fi
 
 ### IMPORTANT: Do no edit below this line unless you know what you're doing
@@ -155,8 +151,7 @@ prepare() {
 
   # Enable IKCONFIG following Arch's philosophy
   scripts/config --enable CONFIG_IKCONFIG \
-                 --enable CONFIG_IKCONFIG_PROC \
-                 --enable CONFIG_USER_NS
+                 --enable CONFIG_IKCONFIG_PROC
 
   # Requested by Alexandre Frade to fix issues in python-gbinder
   scripts/config --enable CONFIG_ANDROID_BINDERFS
@@ -235,7 +230,7 @@ prepare() {
 
 build() {
   cd linux-${_major}
-  make -j12 ${_compiler_flags} all
+  make ${_compiler_flags} all
 }
 
 _package() {
@@ -255,13 +250,13 @@ _package() {
   msg2 "Installing boot image..."
   # systemd expects to find the kernel here to allow hibernation
   # https://github.com/systemd/systemd/commit/edda44605f06a41fb86b7ab8128dcf99161d2344
-  install -Dm644 "$(make -j8 LLVM=1 CC="ccache clang" -s image_name)" "$modulesdir/vmlinuz"
+  install -Dm644 "$(make -s image_name)" "$modulesdir/vmlinuz"
 
   # Used by mkinitcpio to name the kernel
   echo "$pkgbase" | install -Dm644 /dev/stdin "$modulesdir/pkgbase"
 
   msg2 "Installing modules..."
-  make -j8 LLVM=1 CC="ccache clang" INSTALL_MOD_PATH="$pkgdir/usr" INSTALL_MOD_STRIP=1 modules_install
+  make INSTALL_MOD_PATH="$pkgdir/usr" INSTALL_MOD_STRIP=1 modules_install
 
   # remove build and source links
   rm "$modulesdir"/{source,build}
